@@ -174,7 +174,10 @@ class CheckerAPIHandler(SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
 
     def log_message(self, format, *args):
-        print(f"[WEB] {args[0]} {args[1]} {args[2]}")
+        if len(args) >= 3:
+            print(f"[WEB] {args[0]} {args[1]} {args[2]}")
+        else:
+            print(f"[WEB] {' '.join(str(a) for a in args)}")
 
 
 def run_server(state, host=WEB_HOST, port=WEB_PORT):
