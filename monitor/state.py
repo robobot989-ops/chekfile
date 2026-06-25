@@ -100,7 +100,6 @@ class CheckState:
         }
 
     def get_recent(self, limit: int = 50) -> list:
-        """Возвращает последние проверки."""
         rows = self._conn.execute(
             "SELECT filepath, filename, status, has_errors, total_problems, "
             "report_path, checked_at FROM checked_files "
@@ -116,6 +115,7 @@ class CheckState:
                 "total_problems": r[4],
                 "report_path": r[5],
                 "checked_at": r[6],
+                "report_exists": r[5] is not None and Path(r[5]).exists(),
             }
             for r in rows
         ]

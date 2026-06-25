@@ -191,17 +191,24 @@ function sendEmail() {
   })
   .then(r => r.json())
   .then(data => {
-    btn.textContent = data.ok
-      ? (LANG === 'en' ? 'Sent!' : 'Отправлено!')
-      : (LANG === 'en' ? 'Error' : 'Ошибка');
+    if (data.ok) {
+      btn.textContent = LANG === 'en' ? 'Sent!' : 'Отправлено!';
+    } else {
+      btn.textContent = (LANG === 'en' ? 'Error: ' : 'Ошибка: ') + (data.message || 'unknown');
+      console.error('Email error:', data.message);
+    }
     setTimeout(() => {
       btn.textContent = LANG === 'en' ? 'Send to email' : 'На почту';
       btn.disabled = false;
-    }, 3000);
+    }, 5000);
   })
-  .catch(() => {
-    btn.textContent = LANG === 'en' ? 'Error' : 'Ошибка';
-    btn.disabled = false;
+  .catch((err) => {
+    btn.textContent = (LANG === 'en' ? 'Network error' : 'Ошибка сети');
+    console.error('Email send failed:', err);
+    setTimeout(() => {
+      btn.textContent = LANG === 'en' ? 'Send to email' : 'На почту';
+      btn.disabled = false;
+    }, 5000);
   });
 }
 

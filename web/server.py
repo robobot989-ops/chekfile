@@ -76,9 +76,9 @@ async function loadData(){{
   document.getElementById('files-body').innerHTML=r.map(f=>{{
     const c=f.has_errors?'status-error':'status-ok';
     const l=f.has_errors?'\\u26A0 '+f.total_problems:'\\u2713 OK';
-    const rn=f.report_path?f.report_path.split(/[\\\\/]/).pop():'';
+    const rn=f.report_path&&f.report_exists?f.report_path.split(/[\\\\/]/).pop():'';
     const openLink=rn?'<a href="/report/'+rn+'" target="_blank" onclick="event.stopPropagation()">{open_l}</a>':TXT.no;
-    return '<tr onclick="'+((rn?'window.open(\\'/report/'+rn+'\\',\\'_blank\\')':'')+'">')
+    return '<tr'+(rn?' onclick="window.open(\\'/report/'+rn+'\\',\\'_blank\\')"':'')+'>'
       +'<td>'+f.filename+'</td><td class="'+c+'">'+f.status+'</td><td>'+l+'</td>'
       +'<td>'+(f.checked_at||TXT.no)+'</td><td>'+openLink+'</td></tr>';
   }}).join('');
@@ -129,12 +129,19 @@ class CheckerAPIHandler(SimpleHTTPRequestHandler):
             return
 
         filepath = body.get("filepath", "")
+        # Normalize path for DB lookup (Posix style)
+        from pathlib import PurePosixPath, PureWindowsPath
+        if ":" in filepath:
+            filepath = PureWindowsPath(filepath).as_posix()
+        else:
+            filepath = Path(filepath).as_posix()
+
         fp = Path(filepath)
         report_filename = f"{fp.stem}_report.html"
         report_path = REPORTS_DIR / report_filename
         report_file = str(report_path) if report_path.exists() else None
 
-        # Get problems from state
+        # Get problems from state (try both normalized and original)
         info = self.state.get_file_info(filepath)
         problems = []
         total_segments = 0
@@ -153,7 +160,10 @@ class CheckerAPIHandler(SimpleHTTPRequestHandler):
     def _serve_report(self, filename):
         rp = REPORTS_DIR / filename
         if not rp.exists():
-            self.send_error(404)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(b"<html><body style='background:#0f0f1a;color:#888;font-family:sans-serif;padding:40px'><h2>Report not found</h2><p>The report file <b>" + filename.encode() + b"</b> does not exist.</p><a href='/' style='color:#60a5fa'>Back to dashboard</a></body></html>")
             return
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
