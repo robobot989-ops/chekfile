@@ -62,7 +62,7 @@ tr{{cursor:pointer}}tr:hover{{background:#1e1e3a}}
 </tr></thead><tbody id="files-body"></tbody></table>
 <script>
 const LANG='{lang}';
-const TXT={no:'{no}',stat_today:'{stat_today}',stat_errors:'{stat_errors}',stat_total:'{stat_total}'};
+const TXT={{no:'{no}',stat_today:'{stat_today}',stat_errors:'{stat_errors}',stat_total:'{stat_total}'}};
 const otherLang=LANG==='ru'?'en':'ru';
 async function loadData(){{
   const[s,r]=await Promise.all([
