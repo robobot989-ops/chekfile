@@ -29,6 +29,7 @@ def main():
     parser.add_argument("--once", action="store_true", help="Однократная проверка (без watchdog)")
     parser.add_argument("--web-only", action="store_true", help="Только веб-сервер")
     parser.add_argument("--no-web", action="store_true", help="Без веб-сервера")
+    parser.add_argument("--web-port", type=int, default=WEB_PORT, help="Порт веб-сервера")
     args = parser.parse_args()
 
     # Определяем директорию
@@ -51,9 +52,10 @@ def main():
 
     # Веб-сервер
     web_server = None
+    web_port = args.web_port or WEB_PORT
     if WEB_ENABLED and not args.no_web:
         from web.server import run_server
-        web_server = run_server(state, WEB_HOST, WEB_PORT)
+        web_server = run_server(state, WEB_HOST, web_port)
 
     if args.web_only:
         print("Режим только веб-сервер. Нажмите Ctrl+C для остановки.")

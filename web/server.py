@@ -117,12 +117,18 @@ class CheckerAPIHandler(SimpleHTTPRequestHandler):
 
 def run_server(state: CheckState, host: str = WEB_HOST, port: int = WEB_PORT):
     from threading import Thread
+    import socket
 
     def _make_handler(*args, **kwargs):
         return CheckerAPIHandler(*args, state=state, **kwargs)
 
-    server = HTTPServer((host, port), _make_handler)
-    thread = Thread(target=server.serve_forever, daemon=True, name="web-server")
-    thread.start()
-    print(f"[WEB] Server: http://{host}:{port}")
-    return server
+    try:
+        server = HTTPServer((host, port), _make_handler)
+        thread = Thread(target=server.serve_forever, daemon=True, name="web-server")
+        thread.start()
+        print(f"[WEB] Server: http://{host}:{port}")
+        return server
+    except (OSError, socket.error) as e:
+        print(f"[WEB] Failed to start server on {host}:{port} — {e}")
+        print(f"[WEB] Try a different port: --web-port PORT or change WEB_PORT in config.py")
+        return None
