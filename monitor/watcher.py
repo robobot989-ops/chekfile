@@ -19,6 +19,7 @@ from config import (
     USE_WATCHDOG,
     MAX_WORKERS,
     TOLERANCE,
+    MIN_PROBLEM_DISTANCE,
     get_today_path,
 )
 
@@ -84,7 +85,21 @@ class DxfWatcher:
 
         print(f"[CHECK] {filepath}")
         try:
-            result = generate_report(filepath, str(REPORTS_DIR), tolerance=TOLERANCE)
+            result = generate_report(filepath, str(REPORTS_DIR), tolerance=TOLERANCE, min_distance=MIN_PROBLEM_DISTANCE)
+
+            # Store problem details for email and history
+            details = None
+            if result.get("problems"):
+                details = [
+                    {
+                        "id": p.get("id"),
+                        "distance": p.get("distance", 0),
+                        "location": p.get("location", (0, 0)),
+                        "layer": p.get("segment1", {}).layer if hasattr(p.get("segment1"), "layer") else "?",
+                        "entity_type": p.get("segment1", {}).entity_type if hasattr(p.get("segment1"), "entity_type") else "?",
+                    }
+                    for p in result["problems"]
+                ]
 
             self.state.mark_checked(
                 filepath=filepath,
@@ -95,6 +110,7 @@ class DxfWatcher:
                 has_errors=result["has_errors"],
                 total_problems=result["total_problems"],
                 report_path=result.get("report_file"),
+                error_details={"problems": details} if details else None,
             )
 
             status = "error" if result["has_errors"] else "ok"

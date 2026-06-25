@@ -120,5 +120,26 @@ class CheckState:
             for r in rows
         ]
 
+    def get_file_info(self, filepath: str) -> dict | None:
+        """Возвращает детальную информацию о файле."""
+        row = self._conn.execute(
+            "SELECT filepath, filename, status, has_errors, total_problems, "
+            "report_path, checked_at, error_details FROM checked_files "
+            "WHERE filepath = ?",
+            (filepath,),
+        ).fetchone()
+        if row is None:
+            return None
+        return {
+            "filepath": row[0],
+            "filename": row[1],
+            "status": row[2],
+            "has_errors": bool(row[3]),
+            "total_problems": row[4],
+            "report_path": row[5],
+            "checked_at": row[6],
+            "error_details": json.loads(row[7]) if row[7] else None,
+        }
+
     def close(self):
         self._conn.close()

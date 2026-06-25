@@ -164,21 +164,20 @@ def _cluster_problems(problems: List[dict], cluster_tolerance: float = 20.0) -> 
     return clustered
 
 
-def run_full_check(segments: List[Segment], tolerance: float = 0.1) -> dict:
+def run_full_check(segments: List[Segment], tolerance: float = 0.1, min_distance: float = 0.001) -> dict:
     """Запускает полную проверку: двойные линии + перекрытия."""
     double_lines = find_double_lines(segments, tolerance)
     overlaps = find_overlapping_segments(segments, tolerance)
 
-    # Объединяем, исключая дубликаты
     seen_keys = set()
     all_problems = []
     for p in double_lines + overlaps:
         key = (p["i"], p["j"])
         if key not in seen_keys:
             seen_keys.add(key)
-            all_problems.append(p)
+            if p.get("distance", 0) >= min_distance:
+                all_problems.append(p)
 
-    # Кластеризация — группируем близкие проблемы (для дуг и кривых)
     clustered = _cluster_problems(all_problems, cluster_tolerance=max(tolerance * 200, 20.0))
 
     return {

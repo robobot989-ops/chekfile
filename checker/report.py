@@ -11,7 +11,6 @@ TEMPLATE_DIR = Path(__file__).parent.parent / "web" / "templates"
 
 
 def _compute_bounds(segments):
-    """Вычисляет bounding box всех сегментов."""
     minx = miny = float("inf")
     maxx = maxy = float("-inf")
     for s in segments:
@@ -20,8 +19,6 @@ def _compute_bounds(segments):
             miny = min(miny, y)
             maxx = max(maxx, x)
             maxy = max(maxy, y)
-
-    # Добавляем отступ 5%
     dx = (maxx - minx) or 1
     dy = (maxy - miny) or 1
     margin_x = dx * 0.05
@@ -36,21 +33,21 @@ def _compute_bounds(segments):
     }
 
 
-def _segment_to_svg_path(seg: Segment, bounds: dict, viewbox_size: tuple) -> str:
-    """Конвертирует сегмент в SVG path строку."""
+def _make_transform(bounds, viewbox_size):
     vbw, vbh = viewbox_size
     bw = bounds["width"]
     bh = bounds["height"]
     scale = min(vbw / bw, vbh / bh) * 0.9
-
     cx = bounds["minx"] + bw / 2
     cy = bounds["miny"] + bh / 2
     ox = vbw / 2 - cx * scale
-    oy = vbh / 2 - cy * scale
-
+    oy = vbh / 2 + cy * scale
     def transform(x, y):
-        return (x * scale + ox, y * scale + oy)
+        return (x * scale + ox, -y * scale + oy)
+    return transform
 
+
+def _segment_to_svg_path(seg, transform):
     parts = []
     coords = list(seg.geom.coords)
     if not coords:
@@ -63,68 +60,46 @@ def _segment_to_svg_path(seg: Segment, bounds: dict, viewbox_size: tuple) -> str
     return " ".join(parts)
 
 
-def _generate_svg_base(segments: list, bounds: dict, viewbox_size=(1000, 1000)):
-    """Генерирует базовый SVG с линиями чертежа."""
-    svg_parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {viewbox_size[0]} {viewbox_size[1]}" style="background:#1a1a2e;width:100%;height:auto;">']
-    svg_parts.append(f'<g id="dxf-lines" stroke="#e0e0e0" stroke-width="1" fill="none">')
-
-    for seg in segments:
-        path = _segment_to_svg_path(seg, bounds, viewbox_size)
-        if path:
-            opacity = 0.7
-            svg_parts.append(f'<path d="{path}" opacity="{opacity}" />')
-
-    svg_parts.append("</g>")
-    return "\n".join(svg_parts)
-
-
-def _generate_svg_problems(problems: list, bounds: dict, viewbox_size=(1000, 1000)):
-    """Генерирует SVG элементы для подсветки проблемных мест."""
-    svg_parts = ['<g id="problems">']
-
+def _generate_svg_base(segments, bounds, viewbox_size=(1000, 1000)):
     vbw, vbh = viewbox_size
-    bw = bounds["width"]
-    bh = bounds["height"]
-    scale = min(vbw / bw, vbh / bh) * 0.9
-    cx = bounds["minx"] + bw / 2
-    cy = bounds["miny"] + bh / 2
-    ox = vbw / 2 - cx * scale
-    oy = vbh / 2 - cy * scale
+    t = _make_transform(bounds, viewbox_size)
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {vbw} {vbh}" style="background:#1a1a2e;width:100%;height:auto;">']
+    svg.append('<g id="dxf-lines" stroke="#e0e0e0" stroke-width="1" fill="none">')
+    for seg in segments:
+        path = _segment_to_svg_path(seg, t)
+        if path:
+            svg.append(f'<path d="{path}" opacity="0.7" />')
+    svg.append("</g>")
+    return "\n".join(svg)
 
-    def transform(x, y):
-        return (x * scale + ox, y * scale + oy)
 
+def _generate_svg_problems(problems, bounds, viewbox_size=(1000, 1000)):
+    vbw, vbh = viewbox_size
+    t = _make_transform(bounds, viewbox_size)
+    svg = ['<g id="problems">']
     for p in problems:
-        loc = p.get("location", (0, 0))
-        px, py = loc
-        sx, sy = transform(px, py)
-        radius = max(6, scale * 0.5)
-
-        # Подсветка проблемных сегментов
+        px, py = p.get("location", (0, 0))
+        sx, sy = t(px, py)
+        radius = max(6, min(vbw, vbh) * 0.006)
         for seg_key in ["segment1", "segment2"]:
             seg = p.get(seg_key)
             if seg:
-                path = _segment_to_svg_path(seg, bounds, viewbox_size)
+                path = _segment_to_svg_path(seg, t)
                 if path:
-                    svg_parts.append(f'<path d="{path}" stroke="#ff3333" stroke-width="3" opacity="0.9" />')
-
-        # Маркер
-        svg_parts.append(
+                    svg.append(f'<path d="{path}" stroke="#ff3333" stroke-width="3" opacity="0.9" />')
+        svg.append(
             f'<circle cx="{sx:.2f}" cy="{sy:.2f}" r="{radius:.1f}" '
             f'stroke="#ff0000" stroke-width="2" fill="rgba(255,0,0,0.25)" '
             f'class="problem-marker" data-problem-id="{p.get("id", 0)}" />'
         )
+    svg.append("</g>")
+    return "\n".join(svg)
 
-    svg_parts.append("</g>")
-    return "\n".join(svg_parts)
 
-
-def generate_report(filepath: str, output_dir: str | Path, tolerance: float = 0.1) -> dict:
-    """Полный цикл: загрузка DXF → проверка → генерация HTML."""
+def generate_report(filepath, output_dir, tolerance=0.1, min_distance=0.001, lang="ru"):
     from .dxf_loader import load_dxf_segments
-
     segments, metadata = load_dxf_segments(filepath)
-    result = run_full_check(segments, tolerance)
+    result = run_full_check(segments, tolerance, min_distance)
     bounds = _compute_bounds(segments)
     svg_base = _generate_svg_base(segments, bounds)
     svg_problems = _generate_svg_problems(result["problems"], bounds)
@@ -146,10 +121,10 @@ def generate_report(filepath: str, output_dir: str | Path, tolerance: float = 0.
         problems=result["problems"],
         tolerance=tolerance,
         checked_at=datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
+        lang=lang,
     )
 
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
     report_path.write_text(html, encoding="utf-8")
 
     return {
@@ -157,4 +132,6 @@ def generate_report(filepath: str, output_dir: str | Path, tolerance: float = 0.
         "has_errors": result["has_errors"],
         "total_problems": result["total_problems"],
         "filename": filename,
+        "problems": result["problems"],
+        "total_segments": result["total_segments"],
     }
