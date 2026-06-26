@@ -3,8 +3,7 @@ from shapely import STRtree
 from shapely.geometry import LineString, Point
 from typing import List, Tuple, Set
 from .dxf_loader import Segment
-from itertools import combinations
-import math
+from .bridge import find_missing_bridges
 
 def find_double_lines(segments: List[Segment], tolerance: float = 0.1) -> List[dict]:
     """Находит пары сегментов, расстояние между которыми меньше tolerance.
@@ -164,25 +163,72 @@ def _cluster_problems(problems: List[dict], cluster_tolerance: float = 20.0) -> 
     return clustered
 
 
-def run_full_check(segments: List[Segment], tolerance: float = 0.1, min_distance: float = 0.001) -> dict:
-    """Запускает полную проверку: двойные линии + перекрытия."""
-    double_lines = find_double_lines(segments, tolerance)
-    overlaps = find_overlapping_segments(segments, tolerance)
-
-    seen_keys = set()
-    all_problems = []
-    for p in double_lines + overlaps:
-        key = (p["i"], p["j"])
-        if key not in seen_keys:
-            seen_keys.add(key)
-            if p.get("distance", 0) >= min_distance:
-                all_problems.append(p)
-
-    clustered = _cluster_problems(all_problems, cluster_tolerance=max(tolerance * 200, 20.0))
-
-    return {
-        "problems": clustered,
+def run_full_check(
+    segments: List[Segment],
+    tolerance: float = 0.1,
+    min_distance: float = 0.001,
+    check_double_lines: bool = True,
+    check_bridges: bool = True,
+    bridge_min: float = 1.0,
+    bridge_max: float = 6.0,
+    bridge_max_hole: float = 10.0,
+) -> dict:
+    results = {
+        "double_lines": [],
+        "overlaps": [],
+        "bridges": [],
         "total_segments": len(segments),
-        "total_problems": len(clustered),
-        "has_errors": len(clustered) > 0,
+        "total_problems": 0,
+        "has_errors": False,
     }
+
+    if check_double_lines:
+        double_lines = find_double_lines(segments, tolerance)
+        overlaps = find_overlapping_segments(segments, tolerance)
+
+        seen_keys = set()
+        for p in double_lines + overlaps:
+            key = (p["i"], p["j"])
+            if key not in seen_keys:
+                seen_keys.add(key)
+                if p.get("distance", 0) >= min_distance:
+                    if p.get("overlap_ratio", 0) > 0:
+                        results["overlaps"].append(p)
+                    else:
+                        results["double_lines"].append(p)
+
+        results["double_lines"] = _cluster_problems(
+            results["double_lines"], cluster_tolerance=max(tolerance * 200, 20.0)
+        )
+        results["overlaps"] = _cluster_problems(
+            results["overlaps"], cluster_tolerance=max(tolerance * 200, 20.0)
+        )
+
+    if check_bridges:
+        results["bridges"] = find_missing_bridges(
+            segments,
+            min_bridge=bridge_min,
+            max_bridge=bridge_max,
+            max_hole_diameter=bridge_max_hole,
+        )
+
+    all_problems = []
+    for p in results["double_lines"]:
+        p["problem_type"] = "double_line"
+        all_problems.append(p)
+    for p in results["overlaps"]:
+        p["problem_type"] = "overlap"
+        all_problems.append(p)
+    for p in results["bridges"]:
+        p["problem_type"] = "missing_bridge"
+        all_problems.append(p)
+
+    slot = 1
+    for p in all_problems:
+        p["id"] = slot
+        slot += 1
+
+    results["problems"] = all_problems
+    results["total_problems"] = len(all_problems)
+    results["has_errors"] = len(all_problems) > 0
+    return results

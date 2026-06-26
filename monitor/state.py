@@ -130,13 +130,15 @@ class CheckState:
         ).fetchone()
         if row is None:
             return None
+        rp = row[5]
         return {
             "filepath": row[0],
             "filename": row[1],
             "status": row[2],
             "has_errors": bool(row[3]),
             "total_problems": row[4],
-            "report_path": row[5],
+            "report_path": rp,
+            "report_exists": rp is not None and Path(rp).exists(),
             "checked_at": row[6],
             "error_details": json.loads(row[7]) if row[7] else None,
         }

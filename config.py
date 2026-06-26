@@ -8,7 +8,7 @@ BASE_PATH = Path("Z:/LASERTECHNO")
 TOLERANCE = 0.1
 
 # Минимальное расстояние проблемы для отчёта (игнорирует точные наложения с dist=0)
-MIN_PROBLEM_DISTANCE = 0.001
+MIN_PROBLEM_DISTANCE = 0.01
 
 # Паттерн имени файла: буквы + _ + цифры.dxf
 FILE_PATTERN = "*_*.dxf"

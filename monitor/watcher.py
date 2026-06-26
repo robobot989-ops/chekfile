@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Optional
 
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileModifiedEvent
+from watchdog.events import FileSystemEventHandler
 
 from .state import CheckState
 from checker.report import generate_report
@@ -22,19 +22,19 @@ from config import (
     MIN_PROBLEM_DISTANCE,
     get_today_path,
 )
+from web.settings_manager import SettingsManager
+
+SETTINGS_PATH = Path(DATA_DIR) / "settings.json"
 
 
 def _normalize_path(p: str) -> str:
-    """Приводит путь к единому формату."""
     return Path(p).as_posix()
 
 
 class DxfHandler(FileSystemEventHandler):
-    """Watchdog-обработчик для новых/изменённых DXF файлов."""
-
     def __init__(self, check_callback: Callable):
         self.check_callback = check_callback
-        self._debounce = {}  # filepath -> last_event_time
+        self._debounce = {}
 
     def on_created(self, event):
         if not event.is_directory and event.src_path.lower().endswith(".dxf"):
@@ -45,7 +45,6 @@ class DxfHandler(FileSystemEventHandler):
             self._debounce_and_check(event.src_path)
 
     def _debounce_and_check(self, filepath: str, delay: float = 1.0):
-        """Дебаунс: ждём delay секунд после последнего события."""
         now = time.time()
         last = self._debounce.get(filepath, 0)
         if now - last < delay:
@@ -56,16 +55,17 @@ class DxfHandler(FileSystemEventHandler):
 
 
 class DxfWatcher:
-    """Мониторинг папки с DXF файлами — watchdog + периодический polling."""
-
     def __init__(self, state: CheckState):
         self.state = state
         self.observer: Optional[Observer] = None
         self._running = False
+        self.settings = SettingsManager(str(SETTINGS_PATH))
         self.executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
+    def get_settings(self) -> dict:
+        return self.settings.all()
+
     def check_file(self, filepath: str) -> dict:
-        """Проверяет один DXF файл и возвращает результат."""
         filepath = _normalize_path(filepath)
         fp = Path(filepath)
 
@@ -75,19 +75,17 @@ class DxfWatcher:
         filesize = fp.stat().st_size
         mtime = fp.stat().st_mtime
 
-        # Пропускаем если уже проверяли и файл не менялся
         if not self.state.needs_check(filepath, filesize, mtime):
             return {"filepath": filepath, "status": "skipped"}
 
-        # Паттерн имени
         if not re.match(r"^[A-Za-z]+_\d+\.dxf$", fp.name, re.IGNORECASE):
             return {"filepath": filepath, "status": "skipped", "reason": "Не соответствует паттерну"}
 
         print(f"[CHECK] {filepath}")
         try:
-            result = generate_report(filepath, str(REPORTS_DIR), tolerance=TOLERANCE, min_distance=MIN_PROBLEM_DISTANCE)
+            flat = self.settings.to_flat()
+            result = generate_report(filepath, str(REPORTS_DIR), settings=flat, lang="ru")
 
-            # Store problem details for email and history
             details = None
             if result.get("problems"):
                 details = [
@@ -97,6 +95,7 @@ class DxfWatcher:
                         "location": p.get("location", (0, 0)),
                         "layer": p.get("segment1", {}).layer if hasattr(p.get("segment1"), "layer") else "?",
                         "entity_type": p.get("segment1", {}).entity_type if hasattr(p.get("segment1"), "entity_type") else "?",
+                        "problem_type": p.get("problem_type", "double_line"),
                     }
                     for p in result["problems"]
                 ]
@@ -144,7 +143,6 @@ class DxfWatcher:
             return {"filepath": filepath, "status": "crash", "error": str(e)}
 
     def scan_directory(self, directory: str | Path):
-        """Сканирует директорию и проверяет все новые DXF файлы."""
         directory = Path(directory)
         if not directory.exists():
             print(f"[SCAN] Директория не найдена: {directory}")
@@ -160,18 +158,15 @@ class DxfWatcher:
                 futures.append(future)
 
         for future in as_completed(futures):
-            pass  # результаты уже сохранены в check_file
+            pass
 
     def start_watchdog(self, directory: str | Path):
-        """Запускает watchdog для отслеживания изменений в реальном времени."""
         if not USE_WATCHDOG:
             return
-
         directory = Path(directory)
         if not directory.exists():
             print(f"[WATCHDOG] Директория не найдена: {directory}")
             return
-
         event_handler = DxfHandler(self.check_file)
         self.observer = Observer()
         self.observer.schedule(event_handler, str(directory), recursive=False)
@@ -179,21 +174,17 @@ class DxfWatcher:
         print(f"[WATCHDOG] Мониторинг: {directory}")
 
     def start_polling(self, directory: str | Path):
-        """Периодический polling для файлов, которые могли появиться между проверками."""
         directory = Path(directory)
         if not directory.exists():
             print(f"[POLL] Директория не найдена: {directory}")
             return
-
         while self._running:
             self.scan_directory(directory)
             time.sleep(POLL_INTERVAL)
 
     def run(self, directory: Optional[str | Path] = None):
-        """Запускает полный мониторинг: сканирование + watchdog + polling."""
         if directory is None:
             directory = get_today_path()
-
         directory = Path(directory)
         print(f"=== DXF Checker ===")
         print(f"Директория: {directory}")
@@ -201,18 +192,15 @@ class DxfWatcher:
         print(f"Отчёты: {REPORTS_DIR}")
         print()
 
-        # Первичное сканирование
         print("[INIT] Первичное сканирование...")
         self.scan_directory(directory)
         print()
 
         self._running = True
 
-        # Watchdog
         if USE_WATCHDOG:
             self.start_watchdog(directory)
 
-        # Polling (в том же потоке)
         try:
             self.start_polling(directory)
         except KeyboardInterrupt:
