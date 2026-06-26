@@ -196,33 +196,33 @@ h2{{color:#888;font-size:14px;margin:20px 0 10px;border-bottom:1px solid #2a2a4a
 <div id="msg" class="msg"></div>
 <form id="settings-form">
 <h2>UI</h2>
-<div class="form-group"><label>Language</label><select name="ui.language"><option value="ru" {{sel_ru}}>RU</option><option value="en" {{sel_en}}>EN</option></select></div>
-<div class="form-group"><label>Background color</label><input name="ui.background_color" type="color" value="{{bg_color}}"></div>
-<div class="form-group"><label>Line color</label><input name="ui.line_color" type="color" value="{{line_color}}"></div>
-<div class="form-group"><label>Problem highlight color</label><input name="ui.problem_color" type="color" value="{{problem_color}}"></div>
-<div class="form-group"><label>Bridge highlight color</label><input name="ui.bridge_color" type="color" value="{{bridge_color}}"></div>
+<div class="form-group"><label>Language</label><select name="ui.language"><option value="ru" {sel_ru}>RU</option><option value="en" {sel_en}>EN</option></select></div>
+<div class="form-group"><label>Background color</label><input name="ui.background_color" type="color" value="{bg_color}"></div>
+<div class="form-group"><label>Line color</label><input name="ui.line_color" type="color" value="{line_color}"></div>
+<div class="form-group"><label>Problem highlight color</label><input name="ui.problem_color" type="color" value="{problem_color}"></div>
+<div class="form-group"><label>Bridge highlight color</label><input name="ui.bridge_color" type="color" value="{bridge_color}"></div>
 <h2>Checker</h2>
-<div class="form-group"><label>Tolerance (mm)</label><input name="checker.tolerance" type="number" step="0.01" value="{{tolerance}}"></div>
-<div class="form-group"><label>Min problem distance (mm)</label><input name="checker.min_problem_distance" type="number" step="0.001" value="{{min_distance}}"></div>
-<div class="form-group"><label>Double line check</label><input name="checker.double_line_check" type="checkbox" {{double_line_check}}></div>
-<div class="form-group"><label>Bridge check</label><input name="checker.bridge_check" type="checkbox" {{bridge_check}}></div>
-<div class="form-group"><label>Bridge min gap (mm)</label><input name="checker.bridge_min" type="number" step="0.1" value="{{bridge_min}}"></div>
-<div class="form-group"><label>Bridge max gap (mm)</label><input name="checker.bridge_max" type="number" step="0.1" value="{{bridge_max}}"></div>
-<div class="form-group"><label>Bridge exclude colors</label><input name="checker.bridge_exclude_colors" value="{{bridge_exclude_colors}}"><div class="hint">Comma-separated hex colors, e.g. #00ffff,#ff0000</div></div>
-<div class="form-group"><label>Bridge max hole diameter (mm)</label><input name="checker.bridge_max_hole_diameter" type="number" step="0.5" value="{{bridge_max_hole}}"></div>
+<div class="form-group"><label>Tolerance (mm)</label><input name="checker.tolerance" type="number" step="0.01" value="{tolerance}"></div>
+<div class="form-group"><label>Min problem distance (mm)</label><input name="checker.min_problem_distance" type="number" step="0.001" value="{min_distance}"></div>
+<div class="form-group"><label>Double line check</label><input name="checker.double_line_check" type="checkbox" {double_line_check}></div>
+<div class="form-group"><label>Bridge check</label><input name="checker.bridge_check" type="checkbox" {bridge_check}></div>
+<div class="form-group"><label>Bridge min gap (mm)</label><input name="checker.bridge_min" type="number" step="0.1" value="{bridge_min}"></div>
+<div class="form-group"><label>Bridge max gap (mm)</label><input name="checker.bridge_max" type="number" step="0.1" value="{bridge_max}"></div>
+<div class="form-group"><label>Bridge exclude colors</label><input name="checker.bridge_exclude_colors" value="{bridge_exclude_colors}"><div class="hint">Comma-separated hex colors, e.g. #00ffff,#ff0000</div></div>
+<div class="form-group"><label>Bridge max hole diameter (mm)</label><input name="checker.bridge_max_hole_diameter" type="number" step="0.5" value="{bridge_max_hole}"></div>
 <h2>Monitor</h2>
-<div class="form-group"><label>Poll interval (sec)</label><input name="monitor.poll_interval" type="number" value="{{poll_interval}}"></div>
-<div class="form-group"><label>Watchdog enabled</label><input name="monitor.watchdog" type="checkbox" {{watchdog}}></div>
-<div class="form-group"><label>Max workers</label><input name="monitor.max_workers" type="number" value="{{max_workers}}"></div>
+<div class="form-group"><label>Poll interval (sec)</label><input name="monitor.poll_interval" type="number" value="{poll_interval}"></div>
+<div class="form-group"><label>Watchdog enabled</label><input name="monitor.watchdog" type="checkbox" {watchdog}></div>
+<div class="form-group"><label>Max workers</label><input name="monitor.max_workers" type="number" value="{max_workers}"></div>
 <h2>Email</h2>
-<div class="form-group"><label>SMTP host</label><input name="email.smtp_host" value="{{smtp_host}}"></div>
-<div class="form-group"><label>SMTP port</label><input name="email.smtp_port" type="number" value="{{smtp_port}}"></div>
-<div class="form-group"><label>From address</label><input name="email.from_addr" value="{{from_addr}}"></div>
-<div class="form-group"><label>To address</label><input name="email.to_addr" value="{{to_addr}}"></div>
-<div class="form-group"><label>SMTP password</label><input name="email.smtp_password" type="password" value="{{smtp_password}}"></div>
-<div class="form-group"><label>Use TLS</label><input name="email.use_tls" type="checkbox" {{use_tls}}></div>
+<div class="form-group"><label>SMTP host</label><input name="email.smtp_host" value="{smtp_host}"></div>
+<div class="form-group"><label>SMTP port</label><input name="email.smtp_port" type="number" value="{smtp_port}"></div>
+<div class="form-group"><label>From address</label><input name="email.from_addr" value="{from_addr}"></div>
+<div class="form-group"><label>To address</label><input name="email.to_addr" value="{to_addr}"></div>
+<div class="form-group"><label>SMTP password</label><input name="email.smtp_password" type="password" value="{smtp_password}"></div>
+<div class="form-group"><label>Use TLS</label><input name="email.use_tls" type="checkbox" {use_tls}></div>
 <h2>Web</h2>
-<div class="form-group"><label>Port</label><input name="web.port" type="number" value="{{web_port}}"></div>
+<div class="form-group"><label>Port</label><input name="web.port" type="number" value="{web_port}"></div>
 </form>
 <div class="btn-row">
 <button class="btn-save" onclick="saveSettings()">Save</button>
@@ -364,34 +364,39 @@ def _build_settings(lang):
     elif not exclude_colors:
         exclude_colors = "#00ffff"
 
-    sel_ru = "selected" if ui.get("language", "ru") == "ru" else ""
-    sel_en = "selected" if ui.get("language", "en") == "en" else ""
+    def _g(d, key, default):
+        """Get value from dict, treating None as missing."""
+        v = d.get(key)
+        return default if v is None else v
+
+    sel_ru = "selected" if _g(ui, "language", "ru") == "ru" else ""
+    sel_en = "selected" if _g(ui, "language", "en") == "en" else ""
 
     return SETTINGS_TMPL.format(
         lang=lang,
         sel_ru=sel_ru, sel_en=sel_en,
-        bg_color=ui.get("background_color", "#1a1a2e"),
-        line_color=ui.get("line_color", "#e0e0e0"),
-        problem_color=ui.get("problem_color", "#ff3333"),
-        bridge_color=ui.get("bridge_color", "#ff8800"),
-        tolerance=c.get("tolerance", 0.1),
-        min_distance=c.get("min_problem_distance", 0.001),
-        double_line_check="checked" if c.get("double_line_check", True) else "",
-        bridge_check="checked" if c.get("bridge_check", True) else "",
-        bridge_min=c.get("bridge_min", 1.0),
-        bridge_max=c.get("bridge_max", 6.0),
+        bg_color=_g(ui, "background_color", "#1a1a2e"),
+        line_color=_g(ui, "line_color", "#e0e0e0"),
+        problem_color=_g(ui, "problem_color", "#ff3333"),
+        bridge_color=_g(ui, "bridge_color", "#ff8800"),
+        tolerance=_g(c, "tolerance", 0.1),
+        min_distance=_g(c, "min_problem_distance", 0.001),
+        double_line_check="checked" if _g(c, "double_line_check", True) else "",
+        bridge_check="checked" if _g(c, "bridge_check", True) else "",
+        bridge_min=_g(c, "bridge_min", 1.0),
+        bridge_max=_g(c, "bridge_max", 6.0),
         bridge_exclude_colors=exclude_colors,
-        bridge_max_hole=c.get("bridge_max_hole_diameter", 10.0),
-        poll_interval=m.get("poll_interval", 30),
-        watchdog="checked" if m.get("watchdog", True) else "",
-        max_workers=m.get("max_workers", 4),
-        smtp_host=e.get("smtp_host", "192.168.1.100"),
-        smtp_port=e.get("smtp_port", 25),
-        from_addr=e.get("from_addr", "ab@lasertechno.ru"),
-        to_addr=e.get("to_addr", "shtamp_error@lasertechno.ru"),
-        smtp_password=e.get("smtp_password", ""),
-        use_tls="checked" if e.get("use_tls", False) else "",
-        web_port=w.get("port", 8080),
+        bridge_max_hole=_g(c, "bridge_max_hole_diameter", 10.0),
+        poll_interval=_g(m, "poll_interval", 30),
+        watchdog="checked" if _g(m, "watchdog", True) else "",
+        max_workers=_g(m, "max_workers", 4),
+        smtp_host=_g(e, "smtp_host", "192.168.1.100"),
+        smtp_port=_g(e, "smtp_port", 25),
+        from_addr=_g(e, "from_addr", "ab@lasertechno.ru"),
+        to_addr=_g(e, "to_addr", "shtamp_error@lasertechno.ru"),
+        smtp_password=_g(e, "smtp_password", ""),
+        use_tls="checked" if _g(e, "use_tls", False) else "",
+        web_port=_g(w, "port", 8080),
     )
 
 
