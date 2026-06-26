@@ -8,7 +8,7 @@ from monitor.state import CheckState
 from config import REPORTS_DIR, WEB_HOST, WEB_PORT, DATA_DIR
 from .emailer import send_report_email
 from checker.report import generate_report
-from .settings_manager import SettingsManager
+from .settings_manager import SettingsManager, DEFAULT_SETTINGS
 
 SETTINGS_PATH = Path(DATA_DIR) / "settings.json"
 
@@ -20,7 +20,6 @@ LANG = {
         "stat_today": "Проверено сегодня",
         "stat_errors": "С ошибками",
         "stat_total": "Всего проверено",
-        "other_lang": "EN",
         "no": "—",
         "settings": "Настройки",
         "upload": "Загрузить",
@@ -36,7 +35,6 @@ LANG = {
         "stat_today": "Checked today",
         "stat_errors": "With errors",
         "stat_total": "Total checked",
-        "other_lang": "RU",
         "no": "—",
         "settings": "Settings",
         "upload": "Upload",
@@ -82,7 +80,6 @@ tr{{cursor:pointer}}tr:hover{{background:#1e1e3a}}
 <div class="top-bar">
   <button onclick="location.href='/upload'">{upload}</button>
   <button onclick="location.href='/settings'">{settings}</button>
-  <button onclick="toggleLang()">{other_lang}</button>
 </div>
 <div class="stats" id="stats"></div>
 <div class="controls">
@@ -103,9 +100,8 @@ tr{{cursor:pointer}}tr:hover{{background:#1e1e3a}}
 <th>{report_h}</th>
 </tr></thead><tbody id="files-body"></tbody></table>
 <script>
-const LANG='{lang}';
+const LANG=localStorage.getItem('dxf_lang')||'ru';
 const TXT={{no:'{no}',stat_today:'{stat_today}',stat_errors:'{stat_errors}',stat_total:'{stat_total}'}};
-const otherLang=LANG==='ru'?'en':'ru';
 let allFiles=[];
 let sortCol='checked_at';
 let sortDesc=true;
@@ -169,7 +165,6 @@ async function loadData(){{
 }}
 loadData();
 setInterval(loadData,10000);
-function toggleLang(){{const u=new URL(window.location);u.searchParams.set('lang',otherLang);window.location=u}}
 </script></body></html>"""
 
 SETTINGS_TMPL = """<!DOCTYPE html>
@@ -184,6 +179,7 @@ h2{{color:#888;font-size:14px;margin:20px 0 10px;border-bottom:1px solid #2a2a4a
 .form-group label{{min-width:200px;font-size:13px;color:#b0b0d0}}
 .form-group input,.form-group select{{flex:1;background:#16162a;border:1px solid #2a2a4a;color:#e0e0e0;padding:8px 12px;border-radius:4px;font-size:13px;max-width:400px}}
 .form-group input[type="checkbox"]{{max-width:20px;min-width:20px;height:20px}}
+.form-group input[type="color"]{{max-width:50px;min-width:50px;height:36px;padding:2px}}
 .form-group .hint{{font-size:11px;color:#666;margin-top:2px}}
 .btn-row{{display:flex;gap:12px;margin-top:24px}}
 .btn-row button{{padding:8px 20px;border-radius:4px;cursor:pointer;font-size:13px;border:1px solid #3a3a5a}}
@@ -199,6 +195,12 @@ h2{{color:#888;font-size:14px;margin:20px 0 10px;border-bottom:1px solid #2a2a4a
 <h1>Settings</h1>
 <div id="msg" class="msg"></div>
 <form id="settings-form">
+<h2>UI</h2>
+<div class="form-group"><label>Language</label><select name="ui.language"><option value="ru" {{sel_ru}}>RU</option><option value="en" {{sel_en}}>EN</option></select></div>
+<div class="form-group"><label>Background color</label><input name="ui.background_color" type="color" value="{{bg_color}}"></div>
+<div class="form-group"><label>Line color</label><input name="ui.line_color" type="color" value="{{line_color}}"></div>
+<div class="form-group"><label>Problem highlight color</label><input name="ui.problem_color" type="color" value="{{problem_color}}"></div>
+<div class="form-group"><label>Bridge highlight color</label><input name="ui.bridge_color" type="color" value="{{bridge_color}}"></div>
 <h2>Checker</h2>
 <div class="form-group"><label>Tolerance (mm)</label><input name="checker.tolerance" type="number" step="0.01" value="{{tolerance}}"></div>
 <div class="form-group"><label>Min problem distance (mm)</label><input name="checker.min_problem_distance" type="number" step="0.001" value="{{min_distance}}"></div>
@@ -241,10 +243,11 @@ async function saveSettings(){{
     }}
     obj[keys[keys.length-1]]=val;
   }});
-  // Handle bridge_exclude_colors as array
   if(typeof data.checker?.bridge_exclude_colors==='string'){{
     data.checker.bridge_exclude_colors=data.checker.bridge_exclude_colors.split(',').map(s=>s.trim()).filter(Boolean);
   }}
+  // Persist language in localStorage
+  if(data.ui?.language) localStorage.setItem('dxf_lang', data.ui.language);
   try{{
     const r=await fetch('/api/settings',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(data)}});
     const j=await r.json();
@@ -258,6 +261,9 @@ async function saveSettings(){{
     msg.style.display='block';
   }}
 }}
+// Set language from localStorage on page load
+const savedLang=localStorage.getItem('dxf_lang');
+if(savedLang) document.querySelector('select[name="ui.language"]').value=savedLang;
 </script></body></html>"""
 
 UPLOAD_TMPL = """<!DOCTYPE html>
@@ -293,7 +299,7 @@ h1{{color:#b0b0d0;margin-bottom:20px}}
 const dz=document.getElementById('drop-zone');
 const fi=document.getElementById('file-input');
 const st=document.getElementById('status');
-const LANG='{lang}';
+const LANG=localStorage.getItem('dxf_lang')||'{lang}';
 ['dragover','dragenter'].forEach(e=>dz.addEventListener(e,e=>{{e.preventDefault();dz.classList.add('dragover')}}));
 ['dragleave','drop'].forEach(e=>dz.addEventListener(e,e=>{{e.preventDefault();dz.classList.remove('dragover')}}));
 dz.addEventListener('drop',e=>{{const f=e.dataTransfer.files[0];if(f)upload(f)}});
@@ -324,6 +330,19 @@ async function upload(file){{
 </script></body></html>"""
 
 
+def _val(d, *keys, default=""):
+    """Safely traverse nested dict; return default if any key missing."""
+    v = d
+    for k in keys:
+        if isinstance(v, dict):
+            v = v.get(k)
+            if v is None:
+                return default
+        else:
+            return default
+    return v if v is not None else default
+
+
 def _build_dashboard(lang):
     d = LANG.get(lang, LANG["ru"])
     return DASHBOARD_TMPL.format(lang=lang, **d)
@@ -332,20 +351,36 @@ def _build_dashboard(lang):
 def _build_settings(lang):
     sm = SettingsManager(str(SETTINGS_PATH))
     s = sm.all()
+
     c = s.get("checker", {})
     m = s.get("monitor", {})
     e = s.get("email", {})
     w = s.get("web", {})
-    exclude_colors = c.get("bridge_exclude_colors", ["#00ffff"])
+    ui = s.get("ui", {})
+
+    exclude_colors = c.get("bridge_exclude_colors")
+    if isinstance(exclude_colors, list):
+        exclude_colors = ",".join(exclude_colors)
+    elif not exclude_colors:
+        exclude_colors = "#00ffff"
+
+    sel_ru = "selected" if ui.get("language", "ru") == "ru" else ""
+    sel_en = "selected" if ui.get("language", "en") == "en" else ""
+
     return SETTINGS_TMPL.format(
         lang=lang,
+        sel_ru=sel_ru, sel_en=sel_en,
+        bg_color=ui.get("background_color", "#1a1a2e"),
+        line_color=ui.get("line_color", "#e0e0e0"),
+        problem_color=ui.get("problem_color", "#ff3333"),
+        bridge_color=ui.get("bridge_color", "#ff8800"),
         tolerance=c.get("tolerance", 0.1),
         min_distance=c.get("min_problem_distance", 0.001),
         double_line_check="checked" if c.get("double_line_check", True) else "",
         bridge_check="checked" if c.get("bridge_check", True) else "",
         bridge_min=c.get("bridge_min", 1.0),
         bridge_max=c.get("bridge_max", 6.0),
-        bridge_exclude_colors=",".join(exclude_colors),
+        bridge_exclude_colors=exclude_colors,
         bridge_max_hole=c.get("bridge_max_hole_diameter", 10.0),
         poll_interval=m.get("poll_interval", 30),
         watchdog="checked" if m.get("watchdog", True) else "",
@@ -461,7 +496,6 @@ class CheckerAPIHandler(SimpleHTTPRequestHandler):
 
     def _handle_upload(self):
         import tempfile
-        import shutil
         import uuid
 
         content_type = self.headers.get("Content-Type", "")
@@ -476,8 +510,6 @@ class CheckerAPIHandler(SimpleHTTPRequestHandler):
             return
 
         body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
-
-        # Simple multipart parser
         boundary_bytes = ("--" + boundary).encode()
         parts = body.split(boundary_bytes)
         filename = None
@@ -485,12 +517,10 @@ class CheckerAPIHandler(SimpleHTTPRequestHandler):
 
         for part in parts:
             if b'name="file"' in part or b'filename="' in part:
-                # Extract filename
                 import re as re_m
                 m = re_m.search(rb'filename="([^"]*)"', part)
                 if m:
                     filename = m.group(1).decode("utf-8", errors="replace")
-                # Find double CRLF separating headers from body
                 idx = part.find(b"\r\n\r\n")
                 if idx > 0:
                     file_data = part[idx + 4:].rstrip(b"\r\n--")

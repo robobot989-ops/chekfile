@@ -32,6 +32,10 @@ DEFAULT_SETTINGS = {
     "ui": {
         "language": "ru",
         "theme": "dark",
+        "background_color": "#1a1a2e",
+        "line_color": "#e0e0e0",
+        "problem_color": "#ff3333",
+        "bridge_color": "#ff8800",
     },
     "web": {
         "port": 8080,

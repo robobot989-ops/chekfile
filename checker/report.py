@@ -44,15 +44,17 @@ def _seg_path(seg, t):
     return " ".join(parts)
 
 
-def _generate_svg(segments, problems, bounds, vbw=1000, vbh=1000):
+def _generate_svg(segments, problems, bounds, vbw=1000, vbh=1000,
+                  bg_color="#1a1a2e", line_color="#e0e0e0",
+                  problem_color="#ff3333", bridge_color="#ff8800"):
     t = _make_transform(bounds, vbw, vbh)
-    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {vbw} {vbh}" style="background:#1a1a2e;width:100%;height:auto;">']
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {vbw} {vbh}" style="background:{bg_color};width:100%;height:auto;">']
 
     # Base lines with layer colors
     svg.append('<g id="dxf-lines" fill="none">')
     color_map = {}
     for seg in segments:
-        c = seg.color or "#e0e0e0"
+        c = seg.color or line_color
         if c not in color_map:
             color_map[c] = []
         path = _seg_path(seg, t)
@@ -74,14 +76,13 @@ def _generate_svg(segments, problems, bounds, vbw=1000, vbh=1000):
         ptype = p.get("problem_type", "double_line")
 
         if ptype == "missing_bridge":
-            color = "#ff8800"
             for seg in p.get("contour_segments", []):
                 path = _seg_path(seg, t)
                 if path:
-                    svg.append(f'<path d="{path}" stroke="{color}" stroke-width="3" stroke-dasharray="6,3" opacity="0.9" />')
-            svg.append(f'<circle cx="{sx:.2f}" cy="{sy:.2f}" r="{radius*1.5:.1f}" stroke="{color}" stroke-width="2" fill="rgba(255,136,0,0.2)" class="problem-marker" data-problem-id="{p.get("id", 0)}" data-type="bridge" />')
+                    svg.append(f'<path d="{path}" stroke="{bridge_color}" stroke-width="3" opacity="0.9" />')
+            svg.append(f'<circle cx="{sx:.2f}" cy="{sy:.2f}" r="{radius*1.5:.1f}" stroke="{bridge_color}" stroke-width="2" fill="rgba(255,136,0,0.2)" class="problem-marker" data-problem-id="{p.get("id", 0)}" data-type="bridge" />')
         else:
-            color = "#ff3333" if ptype == "double_line" else "#ff66ff"
+            color = problem_color if ptype == "double_line" else "#ff66ff"
             for sk in ["segment1", "segment2"]:
                 seg = p.get(sk)
                 if seg:
@@ -112,7 +113,13 @@ def generate_report(filepath, output_dir, settings=None, lang="ru"):
     bounds = _compute_bounds(segments)
 
     # SVG with colors and problems
-    svg = _generate_svg(segments, result["problems"], bounds)
+    bg = s.get("ui.background_color", s.get("background_color", "#1a1a2e"))
+    lc = s.get("ui.line_color", s.get("line_color", "#e0e0e0"))
+    pc = s.get("ui.problem_color", s.get("problem_color", "#ff3333"))
+    bc = s.get("ui.bridge_color", s.get("bridge_color", "#ff8800"))
+    svg = _generate_svg(segments, result["problems"], bounds,
+                        bg_color=bg, line_color=lc,
+                        problem_color=pc, bridge_color=bc)
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     filename = metadata["filename"]
