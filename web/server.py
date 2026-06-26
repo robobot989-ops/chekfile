@@ -112,18 +112,16 @@ function sortBy(col){{
   document.querySelectorAll('th').forEach(th=>th.classList.remove('sort-asc','sort-desc'));
   const el=document.querySelector('th[data-col="'+col+'"]');
   if(el)el.classList.add(sortDesc?'sort-desc':'sort-asc');
+  document.getElementById('sort-select').value=col;
   renderTable();
 }}
 
 function applySortFilter(){{
-  document.getElementById('sort-select').value=sortCol;
-  renderTable();
+  sortBy(document.getElementById('sort-select').value);
 }}
 
 function renderTable(){{
   const dateFilter=document.getElementById('date-filter').value;
-  const sortSel=document.getElementById('sort-select').value;
-  sortCol=sortSel;
 
   let files=[...allFiles];
 
